@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHOST COMPETITOR SCANNER // v1.0</title>
+    <style>
+        :root {
+            --neon-green: #0f0;
+            --neon-purple: #bc13fe;
+            --dark-bg: #050505;
+            --terminal-bg: #111;
+            --scan-line: rgba(0, 255, 0, 0.1);
+            --font-stack: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--neon-green);
+            font-family: var(--font-stack);
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* CRT Effect Overlay */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        h1 {
+            text-shadow: 0 0 10px var(--neon-green);
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--neon-green);
+            padding-bottom: 10px;
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Input Panel */
+        .control-panel {
+            background: var(--terminal-bg);
+            border: 1px solid var(--neon-green);
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--neon-purple);
+            text-shadow: 0 0 5px var(--neon-purple);
+        }
+
+        input[type="text"], input[type="password"] {
+            background: black;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 10px;
+            font-family: var(--font-stack);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus {
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        /* Buttons */
+        .btn {
+            background: black;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 12px 24px;
+            font-family: var(--font-stack);
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            background: var(--neon-green);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-deploy {
+            border-color: var(--neon-purple);
+            color: var(--neon-purple);
+            margin-top: 30px;
+            font-size: 0.8rem;
+        }
+        
+        .btn-deploy:hover {
+            background: var(--neon-purple);
+            color: white;
+            box-shadow: 0 0 20px var(--neon-purple);
+        }
+
+        /* Results Terminal */
+        #console-output {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .threat-card {
+            border-left: 4px solid var(--neon-purple);
+            background: rgba(20, 0, 20, 0.6);
+            padding: 15px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .threat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .threat-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .threat-type {
+            font-size: 0.8rem;
+            background: var(--neon-purple);
+            color: white;
+            padding: 2px 6px;
+        }
+
+        .threat-reason {
+            color: #ddd;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .strategy-box {
+            border-top: 1px dashed var(--neon-green);
+            padding-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .counter-btn {
+            background: transparent;
+            border: 1px solid var(--neon-purple);
+            color: var(--neon-purple);
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: var(--font-stack);
+            font-size: 0.8rem;
+        }
+
+        .counter-btn:hover {
+            background: var(--neon-purple);
+            color: white;
+        }
+
+        .strategy-result {
+            margin-top: 10px;
+            color: var(--neon-green);
+            font-style: italic;
+            display: none;
+        }
+
+        /* Utilities */
+        .loading {
+            text-align: center;
+            animation: blink 1s infinite;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-msg {
+            color: red;
+            text-shadow: 0 0 5px red;
+            margin-top: 10px;
+            display: none;
+            text-align: center;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Ghost Competitor Scanner</h1>
+
+    <div class="container">
+        <div class="control-panel">
+            <div class="input-group">
+                <label for="apiKey">:: GEMINI_API_KEY ::</label>
+                <input type="password" id="apiKey" placeholder="Enter API Key here...">
+            </div>
+            <div class="input-group">
+                <label for="keyword">:: TARGET_KEYWORD ::</label>
+                <input type="text" id="keyword" placeholder="e.g. 'Best AI Writing Tool'">
+            </div>
+            <button class="btn" id="scanBtn">INITIATE GHOST SCAN</button>
+            <div class="loading" id="loadingIndicator">SCANNING NEURAL NETWORKS...</div>
+            <div class="error-msg" id="errorMsg"></div>
+        </div>
+
+        <div id="console-output">
+            </div>
+
+        <button class="btn btn-deploy" onclick="alert('System Ready for Netlify Deployment. Package compiled.')">
+            [ DEPLOY TO NETLIFY ]
+        </button>
+    </div>
+
+    <script>
+        // DOM Elements
+        const scanBtn = document.getElementById('scanBtn');
+        const apiKeyInput = document.getElementById('apiKey');
+        const keywordInput = document.getElementById('keyword');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorMsg = document.getElementById('errorMsg');
+        const consoleOutput = document.getElementById('console-output');
+
+        // Core Event Listener
+        scanBtn.addEventListener('click', async () => {
+            const apiKey = apiKeyInput.value.trim();
+            const keyword = keywordInput.value.trim();
+
+            // Reset UI
+            errorMsg.style.display = 'none';
+            consoleOutput.innerHTML = '';
+            
+            // Validation
+            if (!apiKey || !keyword) {
+                showError('ERROR: MISSING CREDENTIALS OR TARGET');
+                return;
+            }
+
+            // Start UI Loading State
+            setLoading(true);
+
+            try {
+                // Construct the prompt
+                const prompt = `
+                    Act as an AI Search Engine simulator. 
+                    For the search query "${keyword}", list 3 unconventional, "ghost" sources (like Reddit threads, specific Quora answers, niche forums, or independent developer blogs) that would likely appear in a Perplexity.ai or SearchGPT answer, but might be missed by traditional SEO tools.
+                    
+                    For each source, explain briefly why an AI model trusts this source (e.g., "high user engagement", "domain specificity", "first-person experience").
+                    
+                    STRICTLY RETURN ONLY RAW JSON with no markdown formatting. Structure:
+                    {
+                      "sources": [
+                        {
+                          "name": "Source Name",
+                          "url": "Hypothetical or Real URL context",
+                          "why_trusted": "Reason for AI trust"
+                        }
+                      ]
+                    }
+                `;
+
+                // Call Gemini API
+                const data = await callGemini(apiKey, prompt);
+                
+                // Render Results
+                renderThreats(data.sources, apiKey);
+
+            } catch (err) {
+                console.error(err);
+                showError('SIGNAL JAMMED - CHECK API KEY OR QUOTA');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Gemini API Helper
+        async function callGemini(key, promptText) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: promptText }] }]
+                })
+            });
+
+            if (!response.ok) throw new Error('API Error');
+
+            const json = await response.json();
+            const rawText = json.candidates[0].content.parts[0].text;
+            
+            // Clean Markdown code blocks if Gemini adds them
+            const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            
+            return JSON.parse(cleanText);
+        }
+
+        // Render Function
+        function renderThreats(sources, apiKey) {
+            consoleOutput.style.display = 'flex';
+            
+            if(sources.length === 0) {
+                consoleOutput.innerHTML = '<div style="text-align:center">NO GHOSTS DETECTED.</div>';
+                return;
+            }
+
+            sources.forEach((source, index) => {
+                const card = document.createElement('div');
+                card.className = 'threat-card';
+                card.innerHTML = `
+                    <div class="threat-header">
+                        <span class="threat-name">${source.name}</span>
+                        <span class="threat-type">DETECTED</span>
+                    </div>
+                    <div class="threat-reason">
+                        <strong>AI TRUST VECTOR:</strong> ${source.why_trusted} <br>
+                        <small style="opacity:0.6">${source.url}</small>
+                    </div>
+                    <div class="strategy-box">
+                        <button class="counter-btn" id="btn-${index}">GENERATE COUNTER-STRATEGY</button>
+                        <div class="strategy-result" id="res-${index}"></div>
+                    </div>
+                `;
+                consoleOutput.appendChild(card);
+
+                // Attach Counter-Strategy Logic
+                document.getElementById(`btn-${index}`).addEventListener('click', async (e) => {
+                    const btn = e.target;
+                    const resDiv = document.getElementById(`res-${index}`);
+                    
+                    btn.textContent = 'CALCULATING...';
+                    btn.disabled = true;
+
+                    try {
+                        const stratPrompt = `
+                            My competitor is this source: "${source.name}" (${source.url}).
+                            They are winning on AI search because: "${source.why_trusted}".
+                            Give me a single, 1-sentence tactical tip on how to beat them or co-opt their traffic.
+                        `;
+                        
+                        // We extract the text directly from the API response helper we'll inline here for simplicity
+                        // to reuse the parsing logic is overkill for a simple string, but we use the same endpoint.
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: stratPrompt }] }] })
+                        });
+                        const json = await response.json();
+                        const strategy = json.candidates[0].content.parts[0].text;
+
+                        resDiv.style.display = 'block';
+                        resDiv.innerHTML = `> ${strategy}`;
+                        btn.textContent = 'STRATEGY DEPLOYED';
+                        
+                    } catch (err) {
+                        btn.textContent = 'ERROR';
+                        btn.disabled = false;
+                    }
+                });
+            });
+        }
+
+        // Utility Functions
+        function setLoading(isLoading) {
+            loadingIndicator.style.display = isLoading ? 'block' : 'none';
+            scanBtn.disabled = isLoading;
+            if(isLoading) scanBtn.style.opacity = '0.5';
+            else scanBtn.style.opacity = '1';
+        }
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
