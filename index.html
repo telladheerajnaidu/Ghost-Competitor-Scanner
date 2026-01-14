@@ -3,366 +3,570 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GHOST SCANNER // PERPLEXITY OPS</title>
+    <title>GHOST_SCAN // PROTOCOL_OMEGA</title>
     <style>
         :root {
-            --neon-blue: #00f3ff;
-            --neon-purple: #bc13fe;
-            --neon-red: #ff003c;
-            --dark-bg: #020204;
-            --terminal-bg: #0a0a0f;
-            --font-stack: 'Courier New', Courier, monospace;
+            --holo-blue: #00f3ff;
+            --holo-bg: rgba(0, 243, 255, 0.05);
+            --holo-border: rgba(0, 243, 255, 0.3);
+            --danger-red: #ff2a6d;
+            --void-bg: #050505;
+            --grid-color: rgba(255, 255, 255, 0.03);
+            --font-tech: 'Courier New', Courier, monospace;
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            background-color: var(--dark-bg);
-            color: var(--neon-blue);
-            font-family: var(--font-stack);
-            margin: 0;
-            padding: 20px;
+            background-color: var(--void-bg);
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--holo-blue);
+            font-family: var(--font-tech);
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
+            overflow-x: hidden;
+            perspective: 1000px; /* 3D effect */
         }
 
-        /* CRT Overlay */
-        body::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+        /* Ambient Scanning Overlay */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
                         linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 2px, 3px 100%;
+            background-size: 100% 2px, 6px 100%;
             pointer-events: none;
+            z-index: 999;
+        }
+
+        /* The Glass HUD Container */
+        .hud-container {
+            width: 90%;
+            max-width: 900px;
+            background: rgba(10, 15, 20, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--holo-border);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.15), inset 0 0 20px rgba(0, 243, 255, 0.05);
+            border-radius: 4px;
+            padding: 2rem;
+            position: relative;
+            transform: rotateX(2deg); /* Slight 3D tilt */
+            transition: transform 0.3s ease;
+        }
+
+        /* Decorative HUD Corners */
+        .hud-corner {
+            position: absolute;
+            width: 20px; height: 20px;
+            border: 2px solid var(--holo-blue);
+            transition: all 0.5s;
+        }
+        .tl { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+        .tr { top: -2px; right: -2px; border-left: 0; border-bottom: 0; }
+        .bl { bottom: -2px; left: -2px; border-right: 0; border-top: 0; }
+        .br { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--holo-border);
+            padding-bottom: 10px;
         }
 
         h1 {
-            text-shadow: 0 0 10px var(--neon-blue);
+            font-size: 1.5rem;
+            letter-spacing: 4px;
             text-transform: uppercase;
-            letter-spacing: 5px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid var(--neon-blue);
-            padding-bottom: 10px;
-            width: 100%;
-            max-width: 800px;
-            text-align: center;
+            text-shadow: 0 0 10px var(--holo-blue);
         }
 
-        .container {
-            width: 100%;
-            max-width: 800px;
-            position: relative;
-            z-index: 1;
+        .system-status {
+            font-size: 0.7rem;
+            color: rgba(0, 243, 255, 0.6);
+            text-align: right;
         }
 
-        .control-panel {
-            background: var(--terminal-bg);
-            border: 1px solid var(--neon-blue);
-            padding: 20px;
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+        /* Form Area */
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
             margin-bottom: 20px;
         }
 
         .input-group {
-            margin-bottom: 15px;
+            position: relative;
             display: flex;
             flex-direction: column;
+        }
+
+        .input-group.full-width {
+            grid-column: span 2;
         }
 
         label {
-            font-weight: bold;
+            font-size: 0.7rem;
             margin-bottom: 5px;
-            color: var(--neon-purple);
+            opacity: 0.8;
+            letter-spacing: 1px;
         }
 
-        input[type="text"], input[type="password"] {
-            background: #000;
-            border: 1px solid var(--neon-blue);
-            color: var(--neon-blue);
-            padding: 10px;
-            font-family: var(--font-stack);
+        input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--holo-border);
+            color: #fff;
+            padding: 12px 15px;
+            font-family: var(--font-tech);
             font-size: 1rem;
             outline: none;
+            transition: all 0.3s;
         }
 
-        input:focus { box-shadow: 0 0 15px var(--neon-blue); }
+        input:focus {
+            border-color: var(--holo-blue);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+            background: rgba(0, 243, 255, 0.05);
+        }
 
-        .btn {
-            background: #000;
-            border: 1px solid var(--neon-blue);
-            color: var(--neon-blue);
-            padding: 12px 24px;
-            font-family: var(--font-stack);
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: all 0.2s;
+        /* The Launch Button */
+        #scanBtn {
             width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: 1px solid var(--holo-blue);
+            color: var(--holo-blue);
+            font-family: var(--font-tech);
+            font-weight: bold;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
             margin-top: 10px;
+            transition: 0.3s;
         }
 
-        .btn:hover {
-            background: var(--neon-blue);
-            color: #000;
-            box-shadow: 0 0 20px var(--neon-blue);
+        #scanBtn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: var(--holo-blue);
+            opacity: 0.1;
+            transition: 0.3s;
         }
 
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        #scanBtn:hover {
+            box-shadow: 0 0 20px var(--holo-blue);
+            text-shadow: 0 0 8px #fff;
+            background: rgba(0, 243, 255, 0.1);
+        }
 
+        #scanBtn:disabled {
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Radar Scanning Animation */
+        .radar-line {
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: var(--holo-blue);
+            box-shadow: 0 0 10px var(--holo-blue);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .scanning .radar-line {
+            animation: scanDown 2s infinite linear;
+            opacity: 1;
+        }
+
+        @keyframes scanDown {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* Results Display */
         #console-output {
-            display: none;
+            margin-top: 30px;
+            display: none; /* Hidden by default */
             flex-direction: column;
             gap: 20px;
-            margin-bottom: 50px;
         }
 
         .threat-card {
-            border-left: 4px solid var(--neon-purple);
-            background: rgba(10, 10, 20, 0.8);
-            padding: 15px;
-            border-top: 1px solid #111;
+            border: 1px solid var(--danger-red);
+            background: rgba(255, 42, 109, 0.05);
+            padding: 20px;
+            position: relative;
+            animation: glitchIn 0.3s ease-out;
+        }
+
+        .threat-card::before {
+            content: "THREAT DETECTED";
+            position: absolute;
+            top: -10px; right: 10px;
+            background: var(--void-bg);
+            border: 1px solid var(--danger-red);
+            color: var(--danger-red);
+            font-size: 0.6rem;
+            padding: 2px 5px;
         }
 
         .threat-header {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 5px;
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
+            align-items: center;
+            gap: 10px;
         }
 
-        .threat-name { font-size: 1.2rem; font-weight: bold; color: white; }
-        .threat-type { font-size: 0.8rem; background: var(--neon-purple); color: white; padding: 2px 6px; }
+        .threat-url {
+            color: var(--danger-red);
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+            display: block;
+            opacity: 0.8;
+        }
 
         .threat-reason {
-            color: #ccc;
             font-size: 0.9rem;
+            line-height: 1.5;
+            color: #ccc;
+            border-left: 2px solid var(--danger-red);
+            padding-left: 10px;
             margin-bottom: 15px;
-        }
-
-        .strategy-box {
-            border-top: 1px dashed var(--neon-blue);
-            padding-top: 10px;
         }
 
         .counter-btn {
             background: transparent;
-            border: 1px solid var(--neon-purple);
-            color: var(--neon-purple);
-            padding: 5px 10px;
-            cursor: pointer;
-            font-family: var(--font-stack);
+            border: 1px dashed var(--holo-blue);
+            color: var(--holo-blue);
+            padding: 8px 12px;
+            font-family: var(--font-tech);
             font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
         }
 
-        .counter-btn:hover { background: var(--neon-purple); color: white; }
+        .counter-btn:hover {
+            background: var(--holo-blue);
+            color: #000;
+        }
 
         .strategy-result {
             margin-top: 10px;
-            color: var(--neon-blue);
+            color: #fff;
             font-style: italic;
-            display: none;
-        }
-
-        .error-msg {
-            color: var(--neon-red);
-            border: 1px solid var(--neon-red);
-            background: rgba(255, 0, 0, 0.1);
+            font-size: 0.9rem;
+            background: rgba(0, 243, 255, 0.1);
             padding: 10px;
-            margin-top: 10px;
+            border-left: 2px solid var(--holo-blue);
+            display: none;
+            white-space: pre-wrap;
+        }
+
+        /* Utilities */
+        .error-msg {
+            color: var(--danger-red);
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+            border: 1px solid var(--danger-red);
+            padding: 10px;
+        }
+
+        .cors-warning {
+            font-size: 0.7rem;
+            color: #ffaa00;
+            margin-top: 5px;
             display: none;
         }
 
-        .loading { display: none; text-align: center; margin-top: 20px; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes glitchIn {
+            0% { transform: translateX(-10px); opacity: 0; }
+            20% { transform: translateX(10px); opacity: 1; }
+            40% { transform: translateX(-5px); }
+            60% { transform: translateX(5px); }
+            100% { transform: translateX(0); }
+        }
 
     </style>
 </head>
 <body>
 
-    <h1>Ghost Competitor Scanner</h1>
+    <div class="radar-line" id="radarLine"></div>
 
-    <div class="container">
-        <div class="control-panel">
-            <div class="input-group">
-                <label for="apiKey">:: PERPLEXITY_API_KEY (pplx-...) ::</label>
-                <input type="password" id="apiKey" placeholder="Starts with pplx-..." autocomplete="off">
+    <div class="hud-container">
+        <div class="hud-corner tl"></div>
+        <div class="hud-corner tr"></div>
+        <div class="hud-corner bl"></div>
+        <div class="hud-corner br"></div>
+
+        <header>
+            <h1>GHOST_SCANNER <span style="font-size:0.5em; opacity:0.5;">v.2.0</span></h1>
+            <div class="system-status">
+                SYS: ONLINE<br>
+                NET: ENCRYPTED<br>
+                API: PERPLEXITY_SONAR
             </div>
-            <div class="input-group">
+        </header>
+
+        <div class="control-grid">
+            <div class="input-group full-width">
+                <label for="apiKey">:: SECURITY_KEY (pplx-...) ::</label>
+                <input type="password" id="apiKey" placeholder="ENTER API CREDENTIALS" autocomplete="off">
+            </div>
+
+            <div class="input-group full-width">
                 <label for="keyword">:: TARGET_KEYWORD ::</label>
-                <input type="text" id="keyword" placeholder="e.g. 'Best productivity app for developers'">
+                <input type="text" id="keyword" placeholder="e.g. 'Best AI Coding Assistant'">
             </div>
-            <button class="btn" id="scanBtn">INITIATE SONAR SCAN</button>
-            <div class="loading" id="loadingIndicator">ACCESSING REAL-TIME WEB INDEX...</div>
-            <div class="error-msg" id="errorMsg"></div>
         </div>
 
-        <div id="console-output"></div>
+        <button id="scanBtn">INITIATE DEEP SCAN</button>
+        <div id="corsNote" class="cors-warning">⚠ SYSTEM NOTICE: If scan fails, enable CORS unblocker or run on local server.</div>
+        <div id="errorMsg" class="error-msg"></div>
+
+        <div id="console-output">
+            </div>
+
     </div>
 
     <script>
+        // --- CONFIGURATION ---
+        const ENDPOINT = "https://api.perplexity.ai/chat/completions";
+
+        // --- DOM ---
         const scanBtn = document.getElementById('scanBtn');
         const apiKeyInput = document.getElementById('apiKey');
         const keywordInput = document.getElementById('keyword');
-        const loadingIndicator = document.getElementById('loadingIndicator');
         const errorMsg = document.getElementById('errorMsg');
         const consoleOutput = document.getElementById('console-output');
+        const radarLine = document.getElementById('radarLine');
+        const hudContainer = document.querySelector('.hud-container');
+        const corsNote = document.getElementById('corsNote');
 
-        scanBtn.addEventListener('click', async () => {
+        // --- EVENTS ---
+        scanBtn.addEventListener('click', runScan);
+
+        // --- CORE LOGIC ---
+        async function runScan() {
             const apiKey = apiKeyInput.value.trim();
             const keyword = keywordInput.value.trim();
 
-            errorMsg.style.display = 'none';
-            consoleOutput.innerHTML = '';
-            
+            resetUI();
+
             if (!apiKey || !keyword) {
-                showError('ERROR: MISSING CREDENTIALS.');
+                showError("ERROR: CREDENTIALS OR TARGET MISSING");
                 return;
             }
 
-            setLoading(true);
+            setScanning(true);
+
+            // The Logic: Specifically hunting for "Ghost" competitors
+            const systemPrompt = `
+                You are an Elite Competitive Intelligence Engine.
+                Your mission: Find "Ghost Competitors" for the user's keyword.
+                Ghost Competitors are sources that appear in AI Search results (like Perplexity/SearchGPT) but are NOT traditional big brands.
+                Look for: Niche Reddit threads, Indie Hacker projects, Substack newsletters, or specific forum discussions.
+                
+                STRICT OUTPUT FORMAT: JSON ONLY. No Markdown.
+                Structure:
+                {
+                  "sources": [
+                    { "name": "Source Name", "url": "URL", "why_trusted": "Why AI models trust this source (e.g. 'High Reddit Karma', 'Recent Updates')" }
+                  ]
+                }
+            `;
+
+            const userPrompt = `Scan for 3 invisible/ghost competitors for the keyword: "${keyword}".`;
 
             try {
-                // Perplexity System Prompt
-                const systemPrompt = `
-                    You are a Competitive Intelligence Engine. 
-                    Your goal is to find "Invisible Competitors" for the user's keyword.
-                    These are NOT the big brands. These are Reddit threads, Indie Hackers projects, Substack newsletters, or niche forums that rank high in AI answers.
-                    
-                    Return STRICT JSON. No markdown. Structure:
-                    {
-                      "sources": [
-                        { "name": "Name", "url": "URL", "why_trusted": "Why AI engines cite this" }
-                      ]
-                    }
-                `;
+                // Using the exact fetch structure from your working example
+                const response = await fetch(ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'sonar-pro', // Using the powerful pro model
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            { role: "user", content: userPrompt }
+                        ],
+                        max_tokens: 1000
+                    })
+                });
 
-                const userPrompt = `Find 3 ghost competitors for: "${keyword}". Prioritize sources with high community engagement.`;
+                if (!response.ok) {
+                    const data = await response.json();
+                    let msg = data.error?.message || "Unknown Error";
+                    if (response.status === 401) msg = "INVALID API KEY";
+                    throw new Error(msg);
+                }
 
-                // Call Perplexity API
-                const data = await callPerplexity(apiKey, systemPrompt, userPrompt);
+                const data = await response.json();
                 
-                // Parse JSON from the response text
+                // Parse Logic (Robust)
                 let rawText = data.choices[0].message.content;
-                
-                // Clean formatting (Perplexity is usually clean, but just in case)
                 rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
                 const firstBrace = rawText.indexOf('{');
                 const lastBrace = rawText.lastIndexOf('}');
-                if(firstBrace !== -1 && lastBrace !== -1) {
+                
+                if (firstBrace !== -1 && lastBrace !== -1) {
                     rawText = rawText.substring(firstBrace, lastBrace + 1);
                 }
 
                 const parsed = JSON.parse(rawText);
-                renderThreats(parsed.sources, apiKey);
+                renderResults(parsed.sources, apiKey);
 
             } catch (err) {
                 console.error(err);
-                showError(`CONNECTION SEVERED: ${err.message}`);
+                if (err.message.includes("Failed to fetch")) {
+                    showError("CONNECTION BLOCKED (CORS). PLEASE ENABLE CORS EXTENSION OR CHECK KEY.");
+                    corsNote.style.display = 'block';
+                } else {
+                    showError(`SYSTEM FAILURE: ${err.message}`);
+                }
             } finally {
-                setLoading(false);
+                setScanning(false);
             }
-        });
-
-        // --- PERPLEXITY API HANDLER ---
-        async function callPerplexity(key, sysMsg, userMsg) {
-            const url = 'https://api.perplexity.ai/chat/completions';
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${key}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    // The "Online" model is crucial for real-time web results
-                    model: 'llama-3.1-sonar-large-128k-online', 
-                    messages: [
-                        { role: 'system', content: sysMsg },
-                        { role: 'user', content: userMsg }
-                    ],
-                    temperature: 0.2 // Low temp for more factual JSON
-                })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error?.message || `Status ${response.status}`);
-            }
-
-            return await response.json();
         }
 
-        function renderThreats(sources, apiKey) {
+        // --- RENDER LOGIC ---
+        function renderResults(sources, apiKey) {
             consoleOutput.style.display = 'flex';
             
             if(!sources || sources.length === 0) {
-                consoleOutput.innerHTML = '<div style="text-align:center">NO SIGNALS DETECTED.</div>';
+                consoleOutput.innerHTML = '<div style="text-align:center; color:#fff;">NO GHOST SIGNALS DETECTED.</div>';
                 return;
             }
 
             sources.forEach((source, index) => {
                 const card = document.createElement('div');
                 card.className = 'threat-card';
+                card.style.animationDelay = `${index * 0.2}s`; // Staggered entrance
+                
                 card.innerHTML = `
                     <div class="threat-header">
-                        <span class="threat-name">${source.name}</span>
-                        <span class="threat-type">LIVE SIGNAL</span>
+                        <span>⚠ ${source.name.toUpperCase()}</span>
                     </div>
+                    <a href="${source.url}" target="_blank" class="threat-url">${source.url}</a>
                     <div class="threat-reason">
-                        <strong>VECTOR:</strong> ${source.why_trusted}<br>
-                        <small style="opacity:0.7; color:var(--neon-blue)">${source.url}</small>
+                        > TRUST VECTOR: ${source.why_trusted}
                     </div>
-                    <div class="strategy-box">
-                        <button class="counter-btn" id="btn-${index}">GENERATE COUNTER-OP</button>
-                        <div class="strategy-result" id="res-${index}"></div>
-                    </div>
+                    <button class="counter-btn" id="btn-${index}">[ GENERATE COUNTER-MEASURE ]</button>
+                    <div class="strategy-result" id="res-${index}"></div>
                 `;
+                
                 consoleOutput.appendChild(card);
 
-                // Counter-Strategy (Uses Perplexity again for live tactical advice)
+                // Counter-Measure Logic
                 document.getElementById(`btn-${index}`).addEventListener('click', async (e) => {
                     const btn = e.target;
                     const resDiv = document.getElementById(`res-${index}`);
                     
-                    btn.textContent = 'ANALYZING...';
+                    btn.innerText = "CALCULATING TACTICS...";
                     btn.disabled = true;
 
                     try {
                         const stratPrompt = `
-                            Target: "${source.name}" (${source.url}).
-                            Context: They are winning on the keyword "${document.getElementById('keyword').value}".
-                            Task: Give me 1 specific, actionable growth hack to outrank or co-opt them.
+                            Target: ${source.name}
+                            Context: They are ranking for "${keywordInput.value}" because: ${source.why_trusted}.
+                            Mission: Provide 1 aggressive growth hack to outrank them.
                         `;
+
+                        const response = await fetch(ENDPOINT, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                model: 'sonar', // Use faster model for simple tips
+                                messages: [
+                                    { role: "system", content: "You are a tactical growth hacker. Be brief." },
+                                    { role: "user", content: stratPrompt }
+                                ]
+                            })
+                        });
                         
-                        const data = await callPerplexity(apiKey, "You are a growth hacking expert. Be concise.", stratPrompt);
-                        const strategy = data.choices[0].message.content;
+                        const data = await response.json();
+                        const tactic = data.choices[0].message.content;
 
                         resDiv.style.display = 'block';
-                        resDiv.textContent = `> ${strategy}`;
-                        btn.textContent = 'OP EXECUTED';
-                        
+                        typeWriterEffect(resDiv, "> " + tactic); // Cool typing effect
+                        btn.innerText = "MEASURE DEPLOYED";
+
                     } catch (err) {
-                        btn.textContent = 'RETRY';
+                        btn.innerText = "ERROR";
                         btn.disabled = false;
-                        alert('Strategy computation failed.');
+                        alert("Strategy generation failed.");
                     }
                 });
             });
         }
 
-        function setLoading(state) {
-            loadingIndicator.style.display = state ? 'block' : 'none';
-            scanBtn.disabled = state;
-            scanBtn.style.opacity = state ? '0.5' : '1';
+        // --- UTILS ---
+        function setScanning(isScanning) {
+            if (isScanning) {
+                scanBtn.innerHTML = "SCANNING DEEP WEB...";
+                scanBtn.disabled = true;
+                hudContainer.classList.add('scanning'); // Triggers CSS radar
+                radarLine.style.display = 'block';
+            } else {
+                scanBtn.innerHTML = "INITIATE DEEP SCAN";
+                scanBtn.disabled = false;
+                hudContainer.classList.remove('scanning');
+                radarLine.style.display = 'none';
+            }
         }
 
         function showError(msg) {
-            errorMsg.textContent = msg;
+            errorMsg.innerText = msg;
             errorMsg.style.display = 'block';
+        }
+
+        function resetUI() {
+            errorMsg.style.display = 'none';
+            corsNote.style.display = 'none';
+            consoleOutput.innerHTML = '';
+            consoleOutput.style.display = 'none';
+        }
+
+        // Typing Effect for that "AI Terminal" feel
+        function typeWriterEffect(element, text) {
+            element.textContent = "";
+            let i = 0;
+            const speed = 20; 
+            function type() {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
         }
     </script>
 </body>
