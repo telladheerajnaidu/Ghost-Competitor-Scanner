@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GHOST COMPETITOR SCANNER // v1.0</title>
+    <title>GHOST COMPETITOR SCANNER // v1.1 [DEBUG MODE]</title>
     <style>
         :root {
             --neon-green: #0f0;
             --neon-purple: #bc13fe;
+            --neon-red: #ff003c;
             --dark-bg: #050505;
             --terminal-bg: #111;
             --scan-line: rgba(0, 255, 0, 0.1);
@@ -24,8 +25,7 @@
             font-family: var(--font-stack);
             margin: 0;
             padding: 20px;
-            height: 100vh;
-            overflow-x: hidden;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -146,6 +146,7 @@
             display: none; /* Hidden by default */
             flex-direction: column;
             gap: 20px;
+            margin-bottom: 50px;
         }
 
         .threat-card {
@@ -208,6 +209,7 @@
             color: var(--neon-green);
             font-style: italic;
             display: none;
+            white-space: pre-wrap;
         }
 
         /* Utilities */
@@ -219,11 +221,15 @@
         }
 
         .error-msg {
-            color: red;
-            text-shadow: 0 0 5px red;
+            color: var(--neon-red);
+            border: 1px solid var(--neon-red);
+            background: rgba(255, 0, 0, 0.1);
+            padding: 10px;
             margin-top: 10px;
             display: none;
-            text-align: center;
+            text-align: left;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
         }
 
         @keyframes blink {
@@ -247,7 +253,7 @@
         <div class="control-panel">
             <div class="input-group">
                 <label for="apiKey">:: GEMINI_API_KEY ::</label>
-                <input type="password" id="apiKey" placeholder="Enter API Key here...">
+                <input type="password" id="apiKey" placeholder="Paste your API key here..." autocomplete="off">
             </div>
             <div class="input-group">
                 <label for="keyword">:: TARGET_KEYWORD ::</label>
@@ -285,8 +291,12 @@
             consoleOutput.innerHTML = '';
             
             // Validation
-            if (!apiKey || !keyword) {
-                showError('ERROR: MISSING CREDENTIALS OR TARGET');
+            if (!apiKey) {
+                showError('ERROR: API KEY IS MISSING.');
+                return;
+            }
+            if (!keyword) {
+                showError('ERROR: TARGET KEYWORD IS MISSING.');
                 return;
             }
 
@@ -320,41 +330,61 @@
                 renderThreats(data.sources, apiKey);
 
             } catch (err) {
-                console.error(err);
-                showError('SIGNAL JAMMED - CHECK API KEY OR QUOTA');
+                // Display the REAL error message to the user
+                console.error("Full Error Object:", err);
+                showError(`SYSTEM FAILURE:\n${err.message}`);
             } finally {
                 setLoading(false);
             }
         });
 
-        // Gemini API Helper
+        // --- DIAGNOSTIC PATCHED API CALL ---
         async function callGemini(key, promptText) {
+            // Using the specific model endpoint
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
             
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: promptText }] }]
-                })
-            });
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }]
+                    })
+                });
 
-            if (!response.ok) throw new Error('API Error');
+                // --- ERROR TRAP START ---
+                if (!response.ok) {
+                    const errorBody = await response.json().catch(() => ({}));
+                    const serverMsg = errorBody.error?.message || response.statusText;
+                    throw new Error(`Google API Error (${response.status}): ${serverMsg}`);
+                }
+                // --- ERROR TRAP END ---
 
-            const json = await response.json();
-            const rawText = json.candidates[0].content.parts[0].text;
-            
-            // Clean Markdown code blocks if Gemini adds them
-            const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            
-            return JSON.parse(cleanText);
+                const json = await response.json();
+                
+                // Safety check for empty candidates
+                if (!json.candidates || json.candidates.length === 0) {
+                    throw new Error("API returned no content. (Safety filters might have blocked the response)");
+                }
+
+                const rawText = json.candidates[0].content.parts[0].text;
+                
+                // Clean Markdown code blocks if Gemini adds them
+                const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                
+                return JSON.parse(cleanText);
+
+            } catch (error) {
+                // Re-throw to be caught by the main handler
+                throw error;
+            }
         }
 
         // Render Function
         function renderThreats(sources, apiKey) {
             consoleOutput.style.display = 'flex';
             
-            if(sources.length === 0) {
+            if(!sources || sources.length === 0) {
                 consoleOutput.innerHTML = '<div style="text-align:center">NO GHOSTS DETECTED.</div>';
                 return;
             }
@@ -385,6 +415,7 @@
                     
                     btn.textContent = 'CALCULATING...';
                     btn.disabled = true;
+                    resDiv.style.display = 'none';
 
                     try {
                         const stratPrompt = `
@@ -393,14 +424,17 @@
                             Give me a single, 1-sentence tactical tip on how to beat them or co-opt their traffic.
                         `;
                         
-                        // We extract the text directly from the API response helper we'll inline here for simplicity
-                        // to reuse the parsing logic is overkill for a simple string, but we use the same endpoint.
                         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                         const response = await fetch(url, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ contents: [{ parts: [{ text: stratPrompt }] }] })
                         });
+
+                        if(!response.ok) {
+                            throw new Error("Strategy API Error");
+                        }
+
                         const json = await response.json();
                         const strategy = json.candidates[0].content.parts[0].text;
 
@@ -409,8 +443,9 @@
                         btn.textContent = 'STRATEGY DEPLOYED';
                         
                     } catch (err) {
-                        btn.textContent = 'ERROR';
+                        btn.textContent = 'ERROR - CLICK TO RETRY';
                         btn.disabled = false;
+                        alert("Error generating strategy: " + err.message);
                     }
                 });
             });
