@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GHOST_SCAN // PROTOCOL_OMEGA</title>
+    <title>MARKET_RADAR // OMEGA</title>
     <style>
         :root {
             --holo-blue: #00f3ff;
@@ -30,7 +30,7 @@
             justify-content: center;
             align-items: center;
             overflow-x: hidden;
-            perspective: 1000px; /* 3D effect */
+            perspective: 1000px;
         }
 
         /* Ambient Scanning Overlay */
@@ -57,7 +57,7 @@
             border-radius: 4px;
             padding: 2rem;
             position: relative;
-            transform: rotateX(2deg); /* Slight 3D tilt */
+            transform: rotateX(2deg);
             transition: transform 0.3s ease;
         }
 
@@ -205,7 +205,7 @@
         /* Results Display */
         #console-output {
             margin-top: 30px;
-            display: none; /* Hidden by default */
+            display: none;
             flex-direction: column;
             gap: 20px;
         }
@@ -219,7 +219,7 @@
         }
 
         .threat-card::before {
-            content: "THREAT DETECTED";
+            content: "DETECTED";
             position: absolute;
             top: -10px; right: 10px;
             background: var(--void-bg);
@@ -244,7 +244,10 @@
             margin-bottom: 15px;
             display: block;
             opacity: 0.8;
+            text-decoration: none;
         }
+        
+        .threat-url:hover { text-decoration: underline; }
 
         .threat-reason {
             font-size: 0.9rem;
@@ -321,10 +324,10 @@
         <div class="hud-corner br"></div>
 
         <header>
-            <h1>GHOST_SCANNER <span style="font-size:0.5em; opacity:0.5;">v.2.0</span></h1>
+            <h1>MARKET_RADAR <span style="font-size:0.5em; opacity:0.5;">v.OMEGA</span></h1>
             <div class="system-status">
                 SYS: ONLINE<br>
-                NET: ENCRYPTED<br>
+                SCOPE: UNRESTRICTED<br>
                 API: PERPLEXITY_SONAR
             </div>
         </header>
@@ -341,7 +344,7 @@
             </div>
         </div>
 
-        <button id="scanBtn">INITIATE DEEP SCAN</button>
+        <button id="scanBtn">INITIATE FULL SPECTRUM SCAN</button>
         <div id="corsNote" class="cors-warning">⚠ SYSTEM NOTICE: If scan fails, enable CORS unblocker or run on local server.</div>
         <div id="errorMsg" class="error-msg"></div>
 
@@ -381,26 +384,27 @@
 
             setScanning(true);
 
-            // The Logic: Specifically hunting for "Ghost" competitors
+            // --- THE MISSION LOGIC HAS BEEN UPDATED HERE ---
+            // Now configured to find ALL competitors (Big Brands + Niche)
             const systemPrompt = `
                 You are an Elite Competitive Intelligence Engine.
-                Your mission: Find "Ghost Competitors" for the user's keyword.
-                Ghost Competitors are sources that appear in AI Search results (like Perplexity/SearchGPT) but are NOT traditional big brands.
-                Look for: Niche Reddit threads, Indie Hacker projects, Substack newsletters, or specific forum discussions.
+                Your mission: List the TOP 3 competitors for the user's keyword that rank highest in AI Search.
+                
+                CRITICAL INSTRUCTION: Include BOTH major established brands (like Writesonic, Jasper, HubSpot) AND rising stars. 
+                Do not filter out large companies. I need to see the DOMINANT players.
                 
                 STRICT OUTPUT FORMAT: JSON ONLY. No Markdown.
                 Structure:
                 {
                   "sources": [
-                    { "name": "Source Name", "url": "URL", "why_trusted": "Why AI models trust this source (e.g. 'High Reddit Karma', 'Recent Updates')" }
+                    { "name": "Source Name", "url": "URL", "why_trusted": "Why AI models rank this highly (e.g. 'Domain Authority', 'Massive User Base')" }
                   ]
                 }
             `;
 
-            const userPrompt = `Scan for 3 invisible/ghost competitors for the keyword: "${keyword}".`;
+            const userPrompt = `Identify the top 3 dominant competitors for: "${keyword}".`;
 
             try {
-                // Using the exact fetch structure from your working example
                 const response = await fetch(ENDPOINT, {
                     method: 'POST',
                     headers: {
@@ -458,7 +462,7 @@
             consoleOutput.style.display = 'flex';
             
             if(!sources || sources.length === 0) {
-                consoleOutput.innerHTML = '<div style="text-align:center; color:#fff;">NO GHOST SIGNALS DETECTED.</div>';
+                consoleOutput.innerHTML = '<div style="text-align:center; color:#fff;">NO SIGNALS DETECTED.</div>';
                 return;
             }
 
@@ -473,7 +477,7 @@
                     </div>
                     <a href="${source.url}" target="_blank" class="threat-url">${source.url}</a>
                     <div class="threat-reason">
-                        > TRUST VECTOR: ${source.why_trusted}
+                        > POWER RATING: ${source.why_trusted}
                     </div>
                     <button class="counter-btn" id="btn-${index}">[ GENERATE COUNTER-MEASURE ]</button>
                     <div class="strategy-result" id="res-${index}"></div>
@@ -492,8 +496,8 @@
                     try {
                         const stratPrompt = `
                             Target: ${source.name}
-                            Context: They are ranking for "${keywordInput.value}" because: ${source.why_trusted}.
-                            Mission: Provide 1 aggressive growth hack to outrank them.
+                            Context: They are a dominant player for "${keywordInput.value}".
+                            Mission: Provide 1 aggressive tactic to compete against this giant.
                         `;
 
                         const response = await fetch(ENDPOINT, {
@@ -503,9 +507,9 @@
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({
-                                model: 'sonar', // Use faster model for simple tips
+                                model: 'sonar', 
                                 messages: [
-                                    { role: "system", content: "You are a tactical growth hacker. Be brief." },
+                                    { role: "system", content: "You are a strategic consultant. Be brief." },
                                     { role: "user", content: stratPrompt }
                                 ]
                             })
@@ -515,7 +519,7 @@
                         const tactic = data.choices[0].message.content;
 
                         resDiv.style.display = 'block';
-                        typeWriterEffect(resDiv, "> " + tactic); // Cool typing effect
+                        typeWriterEffect(resDiv, "> " + tactic);
                         btn.innerText = "MEASURE DEPLOYED";
 
                     } catch (err) {
@@ -530,12 +534,12 @@
         // --- UTILS ---
         function setScanning(isScanning) {
             if (isScanning) {
-                scanBtn.innerHTML = "SCANNING DEEP WEB...";
+                scanBtn.innerHTML = "SCANNING GLOBAL INDEX...";
                 scanBtn.disabled = true;
-                hudContainer.classList.add('scanning'); // Triggers CSS radar
+                hudContainer.classList.add('scanning');
                 radarLine.style.display = 'block';
             } else {
-                scanBtn.innerHTML = "INITIATE DEEP SCAN";
+                scanBtn.innerHTML = "INITIATE FULL SPECTRUM SCAN";
                 scanBtn.disabled = false;
                 hudContainer.classList.remove('scanning');
                 radarLine.style.display = 'none';
@@ -554,7 +558,6 @@
             consoleOutput.style.display = 'none';
         }
 
-        // Typing Effect for that "AI Terminal" feel
         function typeWriterEffect(element, text) {
             element.textContent = "";
             let i = 0;
